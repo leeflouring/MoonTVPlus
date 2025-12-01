@@ -9,6 +9,8 @@ import React, {
   useState,
 } from 'react';
 
+import DanmakuPanel from '@/components/DanmakuPanel';
+import type { DanmakuSelection } from '@/lib/danmaku/types';
 import { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
@@ -42,6 +44,9 @@ interface EpisodeSelectorProps {
   sourceSearchError?: string | null;
   /** 预计算的测速结果，避免重复测速 */
   precomputedVideoInfo?: Map<string, VideoInfo>;
+  /** 弹幕相关 */
+  onDanmakuSelect?: (selection: DanmakuSelection) => void;
+  currentDanmakuSelection?: DanmakuSelection | null;
 }
 
 /**
@@ -61,6 +66,8 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   sourceSearchLoading = false,
   sourceSearchError = null,
   precomputedVideoInfo,
+  onDanmakuSelect,
+  currentDanmakuSelection,
 }) => {
   const router = useRouter();
   const pageCount = Math.ceil(totalEpisodes / episodesPerPage);
@@ -86,11 +93,9 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
     videoInfoMapRef.current = videoInfoMap;
   }, [videoInfoMap]);
 
-  // 主要的 tab 状态：'episodes' 或 'sources'
-  // 当只有一集时默认展示 "换源"，并隐藏 "选集" 标签
-  const [activeTab, setActiveTab] = useState<'episodes' | 'sources'>(
-    totalEpisodes > 1 ? 'episodes' : 'sources'
-  );
+  // 主要的 tab 状态：'danmaku' | 'episodes' | 'sources'
+  // 默认显示选集选项卡
+  const [activeTab, setActiveTab] = useState<'danmaku' | 'episodes' | 'sources'>('episodes');
 
   // 当前分页索引（0 开始）
   const initialPage = Math.floor((value - 1) / episodesPerPage);
@@ -352,6 +357,7 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
     <div className='md:ml-2 px-4 py-0 h-full rounded-xl bg-black/10 dark:bg-white/5 flex flex-col border border-white/0 dark:border-white/30 overflow-hidden'>
       {/* 主要的 Tab 切换 - 无缝融入设计 */}
       <div className='flex mb-1 -mx-6 flex-shrink-0'>
+        {/* 选集选项卡 - 仅在多集时显示 */}
         {totalEpisodes > 1 && (
           <div
             onClick={() => setActiveTab('episodes')}
@@ -365,6 +371,8 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
             选集
           </div>
         )}
+
+        {/* 换源选项卡 */}
         <div
           onClick={handleSourceTabClick}
           className={`flex-1 py-3 px-6 text-center cursor-pointer transition-all duration-200 font-medium
@@ -376,7 +384,30 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
         >
           换源
         </div>
+
+        {/* 弹幕选项卡 */}
+        <div
+          onClick={() => setActiveTab('danmaku')}
+          className={`flex-1 py-3 px-6 text-center cursor-pointer transition-all duration-200 font-medium
+            ${activeTab === 'danmaku'
+              ? 'text-green-600 dark:text-green-400'
+              : 'text-gray-700 hover:text-green-600 bg-black/5 dark:bg-white/5 dark:text-gray-300 dark:hover:text-green-400 hover:bg-black/3 dark:hover:bg-white/3'
+            }
+          `.trim()}
+        >
+          弹幕
+        </div>
       </div>
+
+      {/* 弹幕 Tab 内容 */}
+      {activeTab === 'danmaku' && onDanmakuSelect && (
+        <DanmakuPanel
+          videoTitle={videoTitle || ''}
+          currentEpisodeIndex={value - 1}
+          onDanmakuSelect={onDanmakuSelect}
+          currentSelection={currentDanmakuSelection || null}
+        />
+      )}
 
       {/* 选集 Tab 内容 */}
       {activeTab === 'episodes' && (

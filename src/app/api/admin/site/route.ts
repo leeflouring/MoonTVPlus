@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
       DoubanImageProxy,
       DisableYellowFilter,
       FluidSearch,
+      DanmakuApiBase,
+      DanmakuApiToken,
     } = body as {
       SiteName: string;
       Announcement: string;
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
       DoubanImageProxy: string;
       DisableYellowFilter: boolean;
       FluidSearch: boolean;
+      DanmakuApiBase: string;
+      DanmakuApiToken: string;
     };
 
     // 参数校验
@@ -63,7 +67,9 @@ export async function POST(request: NextRequest) {
       typeof DoubanImageProxyType !== 'string' ||
       typeof DoubanImageProxy !== 'string' ||
       typeof DisableYellowFilter !== 'boolean' ||
-      typeof FluidSearch !== 'boolean'
+      typeof FluidSearch !== 'boolean' ||
+      typeof DanmakuApiBase !== 'string' ||
+      typeof DanmakuApiToken !== 'string'
     ) {
       return NextResponse.json({ error: '参数格式错误' }, { status: 400 });
     }
@@ -93,6 +99,8 @@ export async function POST(request: NextRequest) {
       DoubanImageProxy,
       DisableYellowFilter,
       FluidSearch,
+      DanmakuApiBase,
+      DanmakuApiToken,
     };
 
     // 写入数据库

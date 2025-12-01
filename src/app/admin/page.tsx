@@ -267,6 +267,8 @@ interface SiteConfig {
   DoubanImageProxy: string;
   DisableYellowFilter: boolean;
   FluidSearch: boolean;
+  DanmakuApiBase: string;
+  DanmakuApiToken: string;
 }
 
 // 视频源数据类型
@@ -3393,6 +3395,8 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
     DoubanImageProxy: '',
     DisableYellowFilter: false,
     FluidSearch: true,
+    DanmakuApiBase: 'http://localhost:9321',
+    DanmakuApiToken: '87654321',
   });
 
   // 豆瓣数据源相关状态
@@ -3455,6 +3459,8 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
         DoubanImageProxy: config.SiteConfig.DoubanImageProxy || '',
         DisableYellowFilter: config.SiteConfig.DisableYellowFilter || false,
         FluidSearch: config.SiteConfig.FluidSearch || true,
+        DanmakuApiBase: config.SiteConfig.DanmakuApiBase || 'http://localhost:9321',
+        DanmakuApiToken: config.SiteConfig.DanmakuApiToken || '87654321',
       });
     }
   }, [config]);
@@ -3903,10 +3909,60 @@ const SiteConfigComponent = ({ config, refreshConfig }: { config: AdminConfig | 
           </button>
         </div>
         <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-          启用后搜索结果将实时流式返回，提升用户体验。
+          启用后搜索结果将实时流式返回,提升用户体验。
         </p>
       </div>
 
+      {/* 弹幕 API 配置 */}
+      <div className='space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
+        <h3 className='text-sm font-semibold text-gray-900 dark:text-gray-100'>
+          弹幕配置
+        </h3>
+
+        {/* 弹幕 API 地址 */}
+        <div>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            弹幕 API 地址
+          </label>
+          <input
+            type='text'
+            placeholder='http://localhost:9321'
+            value={siteSettings.DanmakuApiBase}
+            onChange={(e) =>
+              setSiteSettings((prev) => ({
+                ...prev,
+                DanmakuApiBase: e.target.value,
+              }))
+            }
+            className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+          />
+          <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+            弹幕服务器的 API 地址，默认为 http://localhost:9321
+          </p>
+        </div>
+
+        {/* 弹幕 API Token */}
+        <div>
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            弹幕 API Token
+          </label>
+          <input
+            type='text'
+            placeholder='87654321'
+            value={siteSettings.DanmakuApiToken}
+            onChange={(e) =>
+              setSiteSettings((prev) => ({
+                ...prev,
+                DanmakuApiToken: e.target.value,
+              }))
+            }
+            className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+          />
+          <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+            弹幕服务器的访问令牌，默认为 87654321
+          </p>
+        </div>
+      </div>
 
       {/* 操作按钮 */}
       <div className='flex justify-end'>

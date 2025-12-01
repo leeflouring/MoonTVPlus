@@ -1,0 +1,285 @@
+// 弹幕 API 服务封装（通过本地代理转发）
+import type {
+  DanmakuAnime,
+  DanmakuComment,
+  DanmakuCommentsResponse,
+  DanmakuEpisodesResponse,
+  DanmakuMatchRequest,
+  DanmakuMatchResponse,
+  DanmakuSearchResponse,
+  DanmakuSettings,
+} from './types';
+
+// 搜索动漫
+export async function searchAnime(
+  keyword: string
+): Promise<DanmakuSearchResponse> {
+  try {
+    const url = `/api/danmaku/search?keyword=${encodeURIComponent(keyword)}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as DanmakuSearchResponse;
+    return data;
+  } catch (error) {
+    console.error('搜索动漫失败:', error);
+    return {
+      errorCode: -1,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : '搜索失败',
+      animes: [],
+    };
+  }
+}
+
+// 自动匹配（根据文件名）
+export async function matchAnime(
+  fileName: string
+): Promise<DanmakuMatchResponse> {
+  try {
+    const url = '/api/danmaku/match';
+    const requestBody: DanmakuMatchRequest = { fileName };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as DanmakuMatchResponse;
+    return data;
+  } catch (error) {
+    console.error('自动匹配失败:', error);
+    return {
+      errorCode: -1,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : '匹配失败',
+      isMatched: false,
+      matches: [],
+    };
+  }
+}
+
+// 获取剧集列表
+export async function getEpisodes(
+  animeId: number
+): Promise<DanmakuEpisodesResponse> {
+  try {
+    const url = `/api/danmaku/episodes?animeId=${animeId}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as DanmakuEpisodesResponse;
+    return data;
+  } catch (error) {
+    console.error('获取剧集列表失败:', error);
+    return {
+      errorCode: -1,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : '获取失败',
+      bangumi: {
+        bangumiId: '',
+        animeTitle: '',
+        episodes: [],
+      },
+    };
+  }
+}
+
+// 通过剧集 ID 获取弹幕
+export async function getDanmakuById(
+  episodeId: number
+): Promise<DanmakuComment[]> {
+  try {
+    const url = `/api/danmaku/comment?episodeId=${episodeId}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as DanmakuCommentsResponse;
+    return data.comments || [];
+  } catch (error) {
+    console.error('获取弹幕失败:', error);
+    return [];
+  }
+}
+
+// 通过视频 URL 获取弹幕
+export async function getDanmakuByUrl(url: string): Promise<DanmakuComment[]> {
+  try {
+    const apiUrl = `/api/danmaku/comment?url=${encodeURIComponent(url)}`;
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as DanmakuCommentsResponse;
+    return data.comments || [];
+  } catch (error) {
+    console.error('获取弹幕失败:', error);
+    return [];
+  }
+}
+
+// 将 danmu_api 的弹幕格式转换为 artplayer-plugin-danmuku 格式
+export function convertDanmakuFormat(
+  comments: DanmakuComment[]
+): Array<{
+  text: string;
+  time: number;
+  color: string;
+  border: boolean;
+  mode: number;
+}> {
+  return comments.map((comment) => {
+    // 解析弹幕属性: "时间,类型,字体,颜色,时间戳,弹幕池,用户Hash,弹幕ID"
+    const parts = comment.p.split(',');
+    const time = parseFloat(parts[0]) || 0;
+    const type = parseInt(parts[1]) || 1; // 1=滚动, 4=底部, 5=顶部
+    const colorValue = parseInt(parts[3]) || 16777215; // 默认白色
+
+    // 将十进制颜色值转换为十六进制
+    const color = `#${colorValue.toString(16).padStart(6, '0')}`;
+
+    // 转换弹幕类型: 1=滚动(0), 4=底部(1), 5=顶部(2)
+    let mode = 0; // 默认滚动
+    if (type === 5) mode = 1; // 顶部
+    else if (type === 4) mode = 2; // 底部
+
+    return {
+      text: comment.m,
+      time,
+      color,
+      border: false,
+      mode,
+    };
+  });
+}
+
+// 默认弹幕设置
+export const DEFAULT_DANMAKU_SETTINGS: DanmakuSettings = {
+  enabled: true,
+  opacity: 1,
+  fontSize: 25,
+  speed: 5,
+  marginTop: 10,
+  marginBottom: 50,
+  maxlength: 100,
+  filterRules: [],
+  unlimited: false,
+  synchronousPlayback: false,
+};
+
+// 从 localStorage 读取弹幕设置
+export function loadDanmakuSettings(): DanmakuSettings {
+  if (typeof window === 'undefined') return DEFAULT_DANMAKU_SETTINGS;
+
+  try {
+    const saved = localStorage.getItem('danmaku_settings');
+    if (saved) {
+      const settings = JSON.parse(saved) as DanmakuSettings;
+      return { ...DEFAULT_DANMAKU_SETTINGS, ...settings };
+    }
+  } catch (error) {
+    console.error('读取弹幕设置失败:', error);
+  }
+  return DEFAULT_DANMAKU_SETTINGS;
+}
+
+// 保存弹幕设置到 localStorage
+export function saveDanmakuSettings(settings: DanmakuSettings): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.setItem('danmaku_settings', JSON.stringify(settings));
+  } catch (error) {
+    console.error('保存弹幕设置失败:', error);
+  }
+}
+
+// 记忆上次选择的弹幕
+export interface DanmakuMemory {
+  videoTitle: string;
+  animeId: number;
+  episodeId: number;
+  animeTitle: string;
+  episodeTitle: string;
+  timestamp: number;
+}
+
+// 保存弹幕选择记忆
+export function saveDanmakuMemory(
+  videoTitle: string,
+  animeId: number,
+  episodeId: number,
+  animeTitle: string,
+  episodeTitle: string
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const memory: DanmakuMemory = {
+      videoTitle,
+      animeId,
+      episodeId,
+      animeTitle,
+      episodeTitle,
+      timestamp: Date.now(),
+    };
+
+    // 获取现有的记忆
+    const memoriesJson = localStorage.getItem('danmaku_memories');
+    const memories: Record<string, DanmakuMemory> = memoriesJson
+      ? JSON.parse(memoriesJson)
+      : {};
+
+    // 保存新记忆
+    memories[videoTitle] = memory;
+
+    // 只保留最近 100 条记忆
+    const entries = Object.entries(memories);
+    if (entries.length > 100) {
+      entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+      const top100 = entries.slice(0, 100);
+      const newMemories = Object.fromEntries(top100);
+      localStorage.setItem('danmaku_memories', JSON.stringify(newMemories));
+    } else {
+      localStorage.setItem('danmaku_memories', JSON.stringify(memories));
+    }
+  } catch (error) {
+    console.error('保存弹幕记忆失败:', error);
+  }
+}
+
+// 读取弹幕选择记忆
+export function loadDanmakuMemory(
+  videoTitle: string
+): DanmakuMemory | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const memoriesJson = localStorage.getItem('danmaku_memories');
+    if (!memoriesJson) return null;
+
+    const memories: Record<string, DanmakuMemory> = JSON.parse(memoriesJson);
+    return memories[videoTitle] || null;
+  } catch (error) {
+    console.error('读取弹幕记忆失败:', error);
+    return null;
+  }
+}

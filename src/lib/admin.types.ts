@@ -16,6 +16,9 @@ export interface AdminConfig {
     DoubanImageProxy: string;
     DisableYellowFilter: boolean;
     FluidSearch: boolean;
+    // 弹幕配置
+    DanmakuApiBase: string;
+    DanmakuApiToken: string;
   };
   UserConfig: {
     Users: {

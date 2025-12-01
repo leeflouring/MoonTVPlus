@@ -218,6 +218,9 @@ async function getInitConfig(configFile: string, subConfig: {
         process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
       FluidSearch:
         process.env.NEXT_PUBLIC_FLUID_SEARCH !== 'false',
+      // 弹幕配置
+      DanmakuApiBase: process.env.DANMAKU_API_BASE || 'http://localhost:9321',
+      DanmakuApiToken: process.env.DANMAKU_API_TOKEN || '87654321',
     },
     UserConfig: {
       Users: [],
@@ -315,6 +318,29 @@ export async function getConfig(): Promise<AdminConfig> {
 
 export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
   // 确保必要的属性存在和初始化
+  if (!adminConfig.SiteConfig) {
+    adminConfig.SiteConfig = {
+      SiteName: 'MoonTV',
+      Announcement: '',
+      SearchDownstreamMaxPage: 5,
+      SiteInterfaceCacheTime: 7200,
+      DoubanProxyType: 'cmliussss-cdn-tencent',
+      DoubanProxy: '',
+      DoubanImageProxyType: 'cmliussss-cdn-tencent',
+      DoubanImageProxy: '',
+      DisableYellowFilter: false,
+      FluidSearch: true,
+      DanmakuApiBase: 'http://localhost:9321',
+      DanmakuApiToken: '87654321',
+    };
+  }
+  // 确保弹幕配置存在
+  if (!adminConfig.SiteConfig.DanmakuApiBase) {
+    adminConfig.SiteConfig.DanmakuApiBase = 'http://localhost:9321';
+  }
+  if (!adminConfig.SiteConfig.DanmakuApiToken) {
+    adminConfig.SiteConfig.DanmakuApiToken = '87654321';
+  }
   if (!adminConfig.UserConfig) {
     adminConfig.UserConfig = { Users: [] };
   }
